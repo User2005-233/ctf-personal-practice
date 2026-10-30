@@ -1,0 +1,12 @@
+# personal progress and generated state
+answers/*.txt
+notes/*.md
+!notes/lab-notes-template.md
+
+# python
+__pycache__/
+*.pyc
+
+# editor / OS
+.DS_Store
+*.swp

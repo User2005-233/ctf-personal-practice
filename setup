@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Seed the lab environment. Re-running rebuilds /srv/lab (your answers survive).
+set -euo pipefail
+cd "$(dirname "$0")"
+exec python3 tools/setup.py "$@"

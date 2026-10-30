@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# End-to-end proof: rebuild every lab, solve it as student, grade it.
+# A lab is not "done" until this passes. Run as root.
+set -uo pipefail
+cd "$(dirname "$0")"
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "run ./verify as root: it rebuilds /srv/lab"
+  exit 1
+fi
+
+BACKUP=$(mktemp -d)
+[ -d answers ] && cp -a answers "$BACKUP/" || true
+
+cleanup() {
+  rm -rf answers
+  if [ -d "$BACKUP/answers" ]; then cp -a "$BACKUP/answers" answers; else mkdir -p answers; fi
+  ./setup >/dev/null 2>&1 || true
+  rm -rf "$BACKUP"
+}
+trap cleanup EXIT
+
+echo "== rebuilding labs =="
+./setup >/dev/null || { echo "FAIL: setup"; exit 1; }
+
+echo "== solving as student =="
+SOL=/tmp/.solutions.$$.sh
+install -m 755 tools/solutions.sh "$SOL"
+su student -c "cd '$PWD' && bash '$SOL'" || { echo "FAIL: solutions"; exit 1; }
+rm -f "$SOL"
+
+echo "== grading =="
+OUT=$(./check all)
+echo "$OUT"
+TOTAL=$(printf '%s\n' "$OUT" | grep -o 'Total: [0-9]*/[0-9]*' | tail -1)
+
+if [ "$TOTAL" = "Total: 16/16" ]; then
+  echo
+  echo "PASS: all 16 tasks verified from a clean state."
+  exit 0
+fi
+
+echo
+echo "FAIL: expected 'Total: 16/16', got '${TOTAL:-none}'"
+exit 1
